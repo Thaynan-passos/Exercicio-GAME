@@ -50,7 +50,7 @@ fim_jogo = False
 pontuacao = 0
 movimento_bola = [2 , -2]
 
-  
+
 #criar as funções do jogo
 def movimentar_jogador(evento):
     if evento.type == pygame.KEYDOWN:
