@@ -1,0 +1,95 @@
+import pygame
+import sys
+
+# Inicializa o pygame
+pygame.init()
+
+# Configurações da tela
+LARGURA, ALTURA = 800, 600
+TELA = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Jogo de Nave com Tiros")
+
+# Cores
+BRANCO = (255, 255, 255)
+VERMELHO = (255, 0, 0)
+VERDE = (0, 255, 0)
+PRETO = (0, 0, 0)
+
+# FPS
+clock = pygame.time.Clock()
+FPS = 60
+
+# Nave
+nave_largura, nave_altura = 50, 30
+nave_x = LARGURA // 2 - nave_largura // 2
+nave_y = ALTURA - nave_altura - 10
+velocidade_nave = 5
+
+# Lista de tiros
+tiros = []
+velocidade_tiro = 7
+
+# Lista de inimigos
+inimigos = []
+for i in range(5):
+    inimigo = pygame.Rect(100 * i + 50, 50, 40, 40)
+    inimigos.append(inimigo)
+
+# Função para desenhar tudo
+def desenhar_jogo():
+    TELA.fill(PRETO)
+
+    # Nave
+    pygame.draw.rect(TELA, BRANCO, (nave_x, nave_y, nave_largura, nave_altura))
+
+    # Tiros
+    for tiro in tiros:
+        pygame.draw.rect(TELA, VERMELHO, tiro)
+
+    # Inimigos
+    for inimigo in inimigos:
+        pygame.draw.rect(TELA, VERDE, inimigo)
+
+    pygame.display.update()
+
+# Loop principal
+rodando = True
+while rodando:
+    clock.tick(FPS)
+
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            rodando = False
+
+    # Controles da nave
+    teclas = pygame.key.get_pressed()
+    if teclas[pygame.K_LEFT] and nave_x > 0:
+        nave_x -= velocidade_nave
+    if teclas[pygame.K_RIGHT] and nave_x < LARGURA - nave_largura:
+        nave_x += velocidade_nave
+
+    # Atirar
+    if teclas[pygame.K_SPACE]:
+        if len(tiros) < 20:
+            novo_tiro = pygame.Rect(nave_x + nave_largura // 2 - 2, nave_y, 5, 10)
+            tiros.append(novo_tiro)
+
+    # Atualiza os tiros
+    for tiro in tiros[:]:
+        tiro.y -= velocidade_tiro
+        if tiro.y < 0:
+            tiros.remove(tiro)
+
+    # Verifica colisões
+    for tiro in tiros[:]:
+        for inimigo in inimigos[:]:
+            if tiro.colliderect(inimigo):
+                tiros.remove(tiro)
+                inimigos.remove(inimigo)
+                break
+
+    # Desenhar tudo
+    desenhar_jogo()
+
+pygame.quit()
+sys.exit()

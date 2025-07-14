@@ -25,6 +25,10 @@ inimigo_img = pygame.transform.scale(inimigo_img, (50, 50))  # usar a mesma imag
 # Velocidade da nave
 velocidade = 5
 
+# tiro lista
+tiros = []
+velocidade_tiro = 10
+
 # Classe Inimigo
 class Inimigo(pygame.sprite.Sprite):
     def __init__(self):
@@ -50,37 +54,27 @@ def main():
     inimigos = pygame.sprite.Group()
 
     # Tempo para controlar a criação de inimigos
-    intervalo_inimigo = 2000  # em milissegundos (2 segundos)
+    intervalo_inimigo = 5000  # em milissegundos (x segundos)
     tempo_ultimo_inimigo = pygame.time.get_ticks()
     
-    
-    
-    
-    
-    
-    
  
- 
-    
-
-
     rodando = True
     while rodando:
         clock.tick(60)
 
-                # Tempo atual do jogo
+        # Tempo atual do jogo
         tempo_atual = pygame.time.get_ticks()
 
-        # Cria um inimigo novo a cada 2 segundos
+        # Cria um inimigo novo a cada  x segundos
         if tempo_atual - tempo_ultimo_inimigo > intervalo_inimigo:
             inimigos.add(Inimigo())
             tempo_ultimo_inimigo = tempo_atual
 
-        MAX_INIMIGOS = 20
+        MAX_INIMIGOS = 1
         if len(inimigos) < MAX_INIMIGOS and tempo_atual - tempo_ultimo_inimigo > intervalo_inimigo:
             inimigos.add(Inimigo())
             tempo_ultimo_inimigo = tempo_atual
-
+      
         
         
         
@@ -98,6 +92,11 @@ def main():
             nave_rect.y -= velocidade
         if teclas[pygame.K_DOWN] and nave_rect.bottom < ALTURA:
             nave_rect.y += velocidade
+        if teclas[pygame.K_SPACE]:
+            # Cria um tiro se não houver muitos na tela
+            if len(tiros) < 3:  # Limite para não disparar muitos de uma vez
+                novo_tiro = pygame.Rect(nave_rect.centerx - 2, nave_rect.top, 5, 10)
+                tiros.append(novo_tiro)
 
         # Atualiza inimigos
         inimigos.update()
@@ -106,7 +105,21 @@ def main():
         TELA.blit(fundo, (0, 0))
         TELA.blit(nave, nave_rect)
         inimigos.draw(TELA)
+        for tiro in tiros:
+            pygame.draw.rect(TELA, (0, 160, 255), tiro)
 
+        # Atualiza a posição dos tiros
+        for tiro in tiros[:]:
+            tiro.y -= velocidade_tiro
+            if tiro.bottom < 0:
+                tiros.remove(tiro)
+            else:
+                # Verifica colisão com inimigos
+                for inimigo in inimigos:
+                    if tiro.colliderect(inimigo.rect):
+                        tiros.remove(tiro)
+                        inimigos.remove(inimigo)
+                        break        
         pygame.display.flip()
 
     pygame.quit()
