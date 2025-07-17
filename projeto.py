@@ -1,33 +1,34 @@
 import pygame
 import sys
-import random   
+import random
 
 # Inicialização
 pygame.init()
 
 # Dimensões da tela
-LARGURA, ALTURA = 800, 600
+LARGURA, ALTURA = 800, 800
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Spacial GAME")
 clock = pygame.time.Clock()
 
 # Carregando imagens
-fundo = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/fundo1.png").convert()
+fundo = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/fundo02.jpg").convert()
 fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))
 
 nave = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/nave1.png").convert_alpha()
-nave = pygame.transform.scale(nave, (60, 60)) 
+nave = pygame.transform.scale(nave, (60, 60))
 nave_rect = nave.get_rect(center=(LARGURA // 2, ALTURA - 80))
 
 inimigo_img = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/inimigo1.png").convert_alpha()
-inimigo_img = pygame.transform.scale(inimigo_img, (50, 50))  # usar a mesma imagem na classe
+inimigo_img = pygame.transform.scale(inimigo_img, (60, 60))
 
-# Velocidade da nave
-velocidade = 5
+coracao_img = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/coração.png").convert_alpha()
+coracao_img = pygame.transform.scale(coracao_img, (30, 30))
 
-# tiro lista
+# Velocidade
+velocidade = 6
+velocidade_tiro = 14
 tiros = []
-velocidade_tiro = 10
 
 # Classe Inimigo
 class Inimigo(pygame.sprite.Sprite):
@@ -48,36 +49,35 @@ class Inimigo(pygame.sprite.Sprite):
 
 # Função principal
 def main():
-    # Criar grupo de sprites
-    # O que e uma sprite? e um objeto que pode ser desenhado na tela e pode se mover e coledir com outros objetos
-    # Grupo de inimigos
     inimigos = pygame.sprite.Group()
+    pontuacao = 0
+    vida = 3
 
-    # Tempo para controlar a criação de inimigos
-    intervalo_inimigo = 5000  # em milissegundos (x segundos)
+    intervalo_inimigo = 5000
     tempo_ultimo_inimigo = pygame.time.get_ticks()
-    
- 
+
+    font_path = "/home/nati-cb/Exercicio-GAME/fonte/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf"
+    fonte = pygame.font.Font(font_path, 25)
+
+    def desenhar_coracoes(tela, x, y, vida):
+        for i in range(vida):
+            tela.blit(coracao_img, (x + i * 35, y))
+
+    def desenhar_pontuacao(tela, Pontuacao):
+        texto = fonte.render(f'Pontuação: {Pontuacao}', True, (255, 255, 255))
+        tela.blit(texto, (10, 10))
+
     rodando = True
     while rodando:
         clock.tick(60)
-
-        # Tempo atual do jogo
         tempo_atual = pygame.time.get_ticks()
 
-        # Cria um inimigo novo a cada  x segundos
+        # Cria inimigos com intervalo
         if tempo_atual - tempo_ultimo_inimigo > intervalo_inimigo:
-            inimigos.add(Inimigo())
-            tempo_ultimo_inimigo = tempo_atual
+            if len(inimigos) < 1:
+                inimigos.add(Inimigo())
+                tempo_ultimo_inimigo = tempo_atual
 
-        MAX_INIMIGOS = 1
-        if len(inimigos) < MAX_INIMIGOS and tempo_atual - tempo_ultimo_inimigo > intervalo_inimigo:
-            inimigos.add(Inimigo())
-            tempo_ultimo_inimigo = tempo_atual
-      
-        
-        
-        
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 rodando = False
@@ -93,33 +93,44 @@ def main():
         if teclas[pygame.K_DOWN] and nave_rect.bottom < ALTURA:
             nave_rect.y += velocidade
         if teclas[pygame.K_SPACE]:
-            # Cria um tiro se não houver muitos na tela
-            if len(tiros) < 3:  # Limite para não disparar muitos de uma vez
+            if len(tiros) < 3:
                 novo_tiro = pygame.Rect(nave_rect.centerx - 2, nave_rect.top, 5, 10)
                 tiros.append(novo_tiro)
 
-        # Atualiza inimigos
         inimigos.update()
 
-        # Desenha na tela
-        TELA.blit(fundo, (0, 0))
-        TELA.blit(nave, nave_rect)
-        inimigos.draw(TELA)
-        for tiro in tiros:
-            pygame.draw.rect(TELA, (0, 160, 255), tiro)
-
-        # Atualiza a posição dos tiros
+        # Atualiza posição dos tiros e verifica colisões com inimigos
         for tiro in tiros[:]:
             tiro.y -= velocidade_tiro
             if tiro.bottom < 0:
                 tiros.remove(tiro)
             else:
-                # Verifica colisão com inimigos
                 for inimigo in inimigos:
                     if tiro.colliderect(inimigo.rect):
                         tiros.remove(tiro)
                         inimigos.remove(inimigo)
-                        break        
+                        pontuacao += 100
+                        break
+
+        # Verifica colisão da nave com inimigos
+        for inimigo in inimigos:
+            if inimigo.rect.colliderect(nave_rect):
+                inimigos.remove(inimigo)
+                vida -= 1
+                if vida <= 0:
+                    print("GAME OVER")
+                    rodando = False
+                break
+
+        # Desenha tudo na tela
+        TELA.blit(fundo, (0, 0))
+        TELA.blit(nave, nave_rect)
+        inimigos.draw(TELA)
+        for tiro in tiros:
+            pygame.draw.rect(TELA, (0, 160, 255), tiro)
+        desenhar_pontuacao(TELA, pontuacao)
+        desenhar_coracoes(TELA, 10, 50, vida)
+
         pygame.display.flip()
 
     pygame.quit()
