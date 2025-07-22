@@ -5,7 +5,7 @@ import random
 # Inicialização
 pygame.init()
 
-# Dimensões da tela
+# Dimensões da tela, cria tela e define titulo
 LARGURA, ALTURA = 800, 800
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Spacial GAME")
@@ -30,6 +30,8 @@ velocidade = 6
 velocidade_tiro = 14
 tiros = []
 
+
+
 # Classe Inimigo
 class Inimigo(pygame.sprite.Sprite):
     def __init__(self):
@@ -46,8 +48,7 @@ class Inimigo(pygame.sprite.Sprite):
             self.rect.y = random.randint(-100, -40)
             self.rect.x = random.randint(0, LARGURA - self.rect.width)
             self.velocidade = random.randint(2, 6)
-
-# Função principal
+# Função principal do jogo
 def main():
     inimigos = pygame.sprite.Group()
     pontuacao = 0
@@ -58,6 +59,11 @@ def main():
 
     font_path = "/home/nati-cb/Exercicio-GAME/fonte/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf"
     fonte = pygame.font.Font(font_path, 25)
+
+    # Variáveis de dano
+    dano = False
+    tempo_dano = 0
+    tempo_dano_max = 300  # milissegundos
 
     def desenhar_coracoes(tela, x, y, vida):
         for i in range(vida):
@@ -117,6 +123,8 @@ def main():
             if inimigo.rect.colliderect(nave_rect):
                 inimigos.remove(inimigo)
                 vida -= 1
+                dano = True
+                tempo_dano = pygame.time.get_ticks()
                 if vida <= 0:
                     print("GAME OVER")
                     rodando = False
@@ -124,7 +132,21 @@ def main():
 
         # Desenha tudo na tela
         TELA.blit(fundo, (0, 0))
-        TELA.blit(nave, nave_rect)
+
+        
+        if dano:
+            if pygame.time.get_ticks() - tempo_dano < tempo_dano_max:
+                # Efeito piscar 
+                if (pygame.time.get_ticks() // 100) % 2 == 0:
+                    TELA.blit(nave, nave_rect)
+            else:
+                    dano = False
+                    TELA.blit(nave, nave_rect)
+        else:
+                TELA.blit(nave, nave_rect)            
+                   
+
+
         inimigos.draw(TELA)
         for tiro in tiros:
             pygame.draw.rect(TELA, (0, 160, 255), tiro)
@@ -135,6 +157,7 @@ def main():
 
     pygame.quit()
     sys.exit()
+
 
 # Execução
 if __name__ == "__main__":
