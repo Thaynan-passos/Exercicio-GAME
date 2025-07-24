@@ -37,7 +37,7 @@ def tela_inicial():
 
 
 # === CARREGAMENTO DE IMAGENS ===
-fundo = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/fundo02.jpg").convert()
+fundo = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/fundo2.png").convert()
 fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))
 
 nave = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/nave1.png").convert_alpha()
@@ -82,6 +82,21 @@ class Chefe(pygame.sprite.Sprite):
             self.tempo_ultimo_tiro = agora
             return True
         return False
+#=== CLASSE: METEORITO ===
+class Meteorito(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/meteoro.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (50, 50))     
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, LARGURA - self.rect.width)
+        self.rect.y = -self.rect.height  # Começa acima da tela
+        self.velocidade = random.randint(3, 8)
+
+    def update(self):
+        self.rect.y += self.velocidade
+        if self.rect.top > ALTURA:
+            self.kill()  # Remove se sair da tela
 
 # === CLASSE: INIMIGOS ===
 class Inimigo(pygame.sprite.Sprite):
@@ -109,18 +124,26 @@ def main():
     chefe = None
     chefe_ativo = False
     tiros_chefe = []
-
+    meteoritos = pygame.sprite.Group()
     intervalo_inimigo = 5000
     tempo_ultimo_inimigo = pygame.time.get_ticks()
-
+    intervalo_meteorito = 2000
+    tempo_ultimo_meteorito = pygame.time.get_ticks()
     font_path = "/home/nati-cb/Exercicio-GAME/fonte/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf"
     fonte = pygame.font.Font(font_path, 25)
+    todos_sprites = pygame.sprite.Group()
+    chefe_vida_base = 10
+    pontuacao_ultima_aparicao = 0
 
+    
     # Controle de dano
     dano = False
     tempo_dano = 0
     tempo_dano_max = 300
 
+    NOVO_METEORITO = pygame.USEREVENT + 1
+    pygame.time.set_timer(NOVO_METEORITO, 5000)  # A cada 1000ms (1 segundo)
+    
     # === FUNÇÕES INTERNAS ===
     def desenhar_coracoes(tela, x, y, vida):
         for i in range(vida):
@@ -129,6 +152,27 @@ def main():
     def desenhar_pontuacao(tela, pontos):
         texto = fonte.render(f'Pontuação: {pontos}', True, (255, 255, 255))
         tela.blit(texto, (10, 10))
+
+    def desenhar_barra_vida(tela, chefe):
+         largura_barra = 120
+         altura_barra = 15
+         x = chefe.rect.centerx - largura_barra // 2
+         y = chefe.rect.top - 20  # Acima da cabeça do chefe
+
+         vida_max = chefe_vida_base - 5
+         vida_atual = chefe.vida
+         proporcao = vida_atual / vida_max
+         largura_vida = int(largura_barra * proporcao)
+
+    # Fundo da barra 
+         pygame.draw.rect(tela, (0, 255, 0), (x, y, largura_barra, altura_barra))
+    # Vida atual 
+         pygame.draw.rect(tela, (0, 100, 0), (x, y, largura_vida, altura_barra))
+    # Moldura
+         pygame.draw.rect(tela, (144, 238, 144), (x, y, largura_barra, altura_barra), 2)
+
+
+
 
     # === LOOP DO JOGO ===
     rodando = True
@@ -142,10 +186,15 @@ def main():
                 inimigos.add(Inimigo())
                 tempo_ultimo_inimigo = tempo_atual
 
-        # Eventos
+        # Evento Queda de meteoritos
         for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                rodando = False
+                if evento.type == pygame.QUIT:
+                    rodando = False
+                elif evento.type == NOVO_METEORITO:
+                    m = Meteorito()
+                    todos_sprites.add(m)
+                    meteoritos.add(m)
+
 
         # Movimento da nave
         teclas = pygame.key.get_pressed()
@@ -161,9 +210,10 @@ def main():
             novo_tiro = pygame.Rect(nave_rect.centerx - 2, nave_rect.top, 5, 10)
             tiros.append(novo_tiro)
 
+    
         # Atualiza inimigos
         inimigos.update()
-
+        todos_sprites.update()
         # Atualiza tiros da nave
         for tiro in tiros[:]:
             tiro.y -= velocidade_tiro
@@ -182,7 +232,7 @@ def main():
                     if chefe.vida <= 0:
                         print("Chefe derrotado!")
                         chefe_ativo = False
-                        pontuacao += 1000
+                        pontuacao += 500
 
         # Tiros do chefe
         for tiro in tiros_chefe[:]:
@@ -194,11 +244,15 @@ def main():
                 dano = True
                 tempo_dano = pygame.time.get_ticks()
                 tiros_chefe.remove(tiro)
-
-        # Ativar chefe quando pontuação for suficiente
-        if not chefe_ativo and pontuacao >= 1000:
+      
+        # Ativar chefe quando a pontuação for o dobro da última aparição
+        if not chefe_ativo and pontuacao >= pontuacao_ultima_aparicao + 1000:
             chefe = Chefe()
+            chefe.vida = chefe_vida_base
+            chefe_vida_base += 5  # Aumenta a vida do próximo chefe
             chefe_ativo = True
+            pontuacao_ultima_aparicao = pontuacao  # Marca a pontuação atual
+
 
         # Colisão com inimigos
         for inimigo in inimigos:
@@ -211,6 +265,16 @@ def main():
                     print("GAME OVER")
                     rodando = False
                 break
+        # Colisão com meteoritos
+        for meteorito in meteoritos:
+            if meteorito.rect.colliderect(nave_rect) and not dano:
+              vida -= 1
+              dano = True
+              tempo_dano = pygame.time.get_ticks()
+              meteorito.kill()
+        if vida <= 0:
+            print("GAME OVER")
+            rodando = False
 
         # Atualiza chefe e tiros
         if chefe_ativo:
@@ -221,6 +285,7 @@ def main():
 
         # === DESENHAR TELA ===
         TELA.blit(fundo, (0, 0))
+        
 
         # Nave piscando se levou dano
         if dano:
@@ -235,21 +300,23 @@ def main():
 
         # Desenha chefe e inimigos
         if chefe_ativo:
+            desenhar_barra_vida(TELA, chefe)
             TELA.blit(chefe.image, chefe.rect)
         inimigos.draw(TELA)
 
         # Desenha tiros
         for tiro in tiros:
-            pygame.draw.rect(TELA, (0, 160, 255), tiro)
+            pygame.draw.rect(TELA, (255, 215, 0), tiro)
         for tiro in tiros_chefe:
-            pygame.draw.rect(TELA, (255, 0, 0), tiro)
+            pygame.draw.rect(TELA, (127, 255, 0), tiro)
 
         # HUD (pontuação e vidas)
         desenhar_pontuacao(TELA, pontuacao)
         desenhar_coracoes(TELA, 10, 50, vida)
-
+       
+        todos_sprites.draw(TELA)
         pygame.display.flip()
-
+       
     pygame.quit()
     sys.exit()
 
