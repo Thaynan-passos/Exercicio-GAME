@@ -25,14 +25,37 @@ def tela_inicial():
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_RETURN:
                     esperando = False
-
+        
         TELA.blit(fundo, (0, 0))
         TELA.blit(titulo, (LARGURA//2 - titulo.get_width()//2, ALTURA//3))
         TELA.blit(instrucao, (LARGURA//2 - instrucao.get_width()//2, ALTURA//2))
         pygame.display.flip()
         clock.tick(60)
+# TELA Gamer Over
+def game_over(tela, largura, altura):
+    TELA.blit(fundo_gamer_over, (0, 0))
+    fonte_gameover = pygame.font.Font("/home/nati-cb/Exercicio-GAME/fonte/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf", 80)
+    fonte_info = pygame.font.Font("/home/nati-cb/Exercicio-GAME/fonte/pixelart.ttf", 20)
 
+    texto_gameover = fonte_gameover.render("GAME OVER", True, (255, 0, 0))
+    texto_info = fonte_info.render("Pressione R para reiniciar ou ESC para sair", True, (128, 0, 0))
 
+    while True:
+        
+        tela.blit(texto_gameover, (largura//2 - texto_gameover.get_width()//2, altura//3))
+        tela.blit(texto_info, (largura//2 - texto_info.get_width()//2, altura//2))
+        pygame.display.update()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                elif evento.key == pygame.K_r:
+                    return 
 
 
 
@@ -49,6 +72,10 @@ inimigo_img = pygame.transform.scale(inimigo_img, (60, 60))
 
 coracao_img = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/coração.png").convert_alpha()
 coracao_img = pygame.transform.scale(coracao_img, (30, 30))
+
+fundo_gamer_over = pygame.image.load("/home/nati-cb/Exercicio-GAME/imagem/gamerover.png").convert()
+fundo_gamer_over = pygame.transform.scale(fundo_gamer_over, (LARGURA, ALTURA))
+
 
 # === VELOCIDADES E TIROS ===
 velocidade = 6
@@ -127,8 +154,8 @@ def main():
     meteoritos = pygame.sprite.Group()
     intervalo_inimigo = 5000
     tempo_ultimo_inimigo = pygame.time.get_ticks()
-    intervalo_meteorito = 2000
-    tempo_ultimo_meteorito = pygame.time.get_ticks()
+    #intervalo_meteorito = 2000
+    #tempo_ultimo_meteorito = pygame.time.get_ticks()
     font_path = "/home/nati-cb/Exercicio-GAME/fonte/Pixelify_Sans/PixelifySans-VariableFont_wght.ttf"
     fonte = pygame.font.Font(font_path, 25)
     todos_sprites = pygame.sprite.Group()
@@ -170,8 +197,7 @@ def main():
          pygame.draw.rect(tela, (0, 100, 0), (x, y, largura_vida, altura_barra))
     # Moldura
          pygame.draw.rect(tela, (144, 238, 144), (x, y, largura_barra, altura_barra), 2)
-
-
+    
 
 
     # === LOOP DO JOGO ===
@@ -246,7 +272,7 @@ def main():
                 tiros_chefe.remove(tiro)
       
         # Ativar chefe quando a pontuação for o dobro da última aparição
-        if not chefe_ativo and pontuacao >= pontuacao_ultima_aparicao + 1000:
+        if not chefe_ativo and pontuacao >= pontuacao_ultima_aparicao + 1500:
             chefe = Chefe()
             chefe.vida = chefe_vida_base
             chefe_vida_base += 5  # Aumenta a vida do próximo chefe
@@ -273,8 +299,8 @@ def main():
               tempo_dano = pygame.time.get_ticks()
               meteorito.kill()
         if vida <= 0:
-            print("GAME OVER")
-            rodando = False
+            game_over(TELA, LARGURA, ALTURA)
+            return  # Retorna para reiniciar o jogo
 
         # Atualiza chefe e tiros
         if chefe_ativo:
@@ -313,7 +339,8 @@ def main():
         # HUD (pontuação e vidas)
         desenhar_pontuacao(TELA, pontuacao)
         desenhar_coracoes(TELA, 10, 50, vida)
-       
+
+        
         todos_sprites.draw(TELA)
         pygame.display.flip()
        
@@ -322,5 +349,6 @@ def main():
 
 # === EXECUÇÃO ===
 if __name__ == "__main__":
+    
     tela_inicial()
     main()
