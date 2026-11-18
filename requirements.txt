@@ -1,0 +1,2 @@
+# Dependências do Spacial GAME
+pygame>=2.5.0
